@@ -105,6 +105,10 @@ Làm đúng thứ tự này:
 - Ghi vài thói quen, đổi ngôn ngữ VI/EN, thêm một ghi chú Noteline, xem trang Thống kê.
 - Tắt rồi mở lại trình duyệt, kiểm tra vẫn còn đăng nhập.
 
+## Thêm vào màn hình iPhone
+
+Mở trang bằng Chrome hoặc Safari (iOS 16.4 trở lên), bấm **Chia sẻ** → **Thêm vào MH chính**. Nếu đã thêm từ trước, xoá icon cũ rồi thêm lại để nhận icon mới. App vẫn cần có mạng vì dữ liệu nằm trên máy chủ.
+
 ## Cập nhật về sau
 
 Trên máy phát triển, build rồi push:
