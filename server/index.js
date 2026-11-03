@@ -12,6 +12,7 @@ const authRoutes = require('./routes/auth');
 const dataRoutes = require('./routes/data');
 const notesRoutes = require('./routes/notes');
 const { langMiddleware } = require('./i18n');
+const compression = require('compression');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -19,6 +20,7 @@ const PORT = Number(process.env.PORT || 3000);
 // Chạy sau Nginx của aaPanel: lấy đúng IP người dùng cho rate limit
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
+app.use(compression());
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -41,6 +43,11 @@ app.use(cookieParser());
 
 app.get('/api/health', (req, res) => res.json({ ok: true, db: client }));
 
+// Dữ liệu cá nhân: không cho proxy lưu, trình duyệt phải hỏi lại máy chủ (không đổi thì nhận 304 theo ETag)
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'private, no-cache');
+  next();
+});
 app.use('/api', langMiddleware, limiters.api, requireJsonAndHeader);
 app.use('/api/auth', authRoutes);
 app.use('/api', requireAuth, dataRoutes);
@@ -52,6 +59,8 @@ const publicDir = path.resolve(__dirname, '..', 'public');
 if (fs.existsSync(path.join(publicDir, 'index.html'))) {
   app.use(express.static(publicDir, { index: false, maxAge: '7d', setHeaders(res, file) {
     if (file.endsWith('index.html')) res.setHeader('Cache-Control', 'no-cache');
+    // Tên file trong assets/ có mã băm, đổi nội dung là đổi tên nên giữ được lâu
+    else if (file.includes(`${path.sep}assets${path.sep}`)) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
   } }));
   app.get(/^\/(?!api).*/, (req, res) => {
     // File tĩnh không tồn tại (có đuôi .js, .css, .png...) thì trả 404 thay vì trả trang chủ

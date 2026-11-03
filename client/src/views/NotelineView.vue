@@ -6,6 +6,7 @@ import ConfirmDialog from '../components/ConfirmDialog.vue';
 import NoteColorPicker from '../components/NoteColorPicker.vue';
 import { PALETTE } from '../lib/habitStyle';
 import { api } from '../api';
+import { useFreshData } from '../lib/freshData';
 import { t } from '../i18n';
 import { toKey, todayKey, addDays, weekdayName, dayMonth, timeOfDay } from '../lib/dates';
 
@@ -86,6 +87,23 @@ function clearSearch() {
 
 load();
 onBeforeUnmount(() => clearTimeout(searchTimer));
+
+// Làm mới ngầm đúng số mục đang hiện (máy chủ trả tối đa 50 mục mỗi lần); đang sửa thì để yên
+async function refresh() {
+  if (editingId.value || loading.value || notes.value.length > 50) return;
+  const seq = ++requestSeq;
+  const params = new URLSearchParams({ limit: String(Math.max(PAGE, notes.value.length)) });
+  if (activeQuery.value) params.set('q', activeQuery.value);
+  try {
+    const data = await api.get(`/notes?${params}`);
+    if (seq !== requestSeq) return;
+    notes.value = data.notes;
+    hasMore.value = data.hasMore;
+  } catch {
+    /* lỗi nền: giữ nguyên danh sách đang hiện */
+  }
+}
+useFreshData(refresh);
 
 /* ---------- soạn mới ---------- */
 const draft = ref('');
@@ -306,7 +324,7 @@ const iconBtn =
 
       <p v-if="error" role="alert" class="text-sm text-sage-fg">
         {{ error }}
-        <button type="button" class="ml-1 cursor-pointer font-medium underline underline-offset-2" @click="load">{{ t('common.retry') }}</button>
+        <button type="button" class="ml-1 cursor-pointer font-medium underline underline-offset-2" @click="load()">{{ t('common.retry') }}</button>
       </p>
       <p v-else-if="loading" class="py-6 text-center text-sm text-muted">{{ t('common.loading') }}</p>
       <div v-else-if="!notes.length" class="flex flex-col items-center gap-3 py-8 text-center">

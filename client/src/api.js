@@ -1,4 +1,8 @@
+import { ref } from 'vue';
 import { locale, t } from './i18n';
+
+// Tăng sau mỗi lần ghi thành công, để các trang đang giữ trong bộ nhớ biết cần làm mới
+export const dataVersion = ref(0);
 
 let onUnauthorized = () => {};
 
@@ -39,6 +43,7 @@ async function request(method, url, body) {
     err.field = data?.field;
     throw err;
   }
+  if (method !== 'GET') dataVersion.value += 1;
   return data;
 }
 

@@ -9,6 +9,7 @@ import HabitStylePicker from '../components/HabitStylePicker.vue';
 import HabitPlanPicker from '../components/HabitPlanPicker.vue';
 import { WEEK_ORDER } from '../lib/stats';
 import { api } from '../api';
+import { useFreshData } from '../lib/freshData';
 import { t } from '../i18n';
 
 const TYPES = ['build', 'quit', 'number'];
@@ -22,18 +23,23 @@ const habits = ref([]);
 const active = computed(() => habits.value.filter((h) => !h.archived));
 const archived = computed(() => habits.value.filter((h) => h.archived));
 
-async function load() {
-  loading.value = true;
-  error.value = '';
+async function load(silent = false) {
+  if (!silent) {
+    loading.value = true;
+    error.value = '';
+  }
   try {
     habits.value = (await api.get('/habits')).habits;
   } catch (err) {
-    error.value = err.message;
+    if (!silent) error.value = err.message;
   } finally {
     loading.value = false;
   }
 }
-onMounted(load);
+onMounted(() => load());
+useFreshData(() => {
+  if (!editingId.value) load(true);
+});
 
 /* ---------- thêm ---------- */
 const blankForm = () => ({ name: '', type: 'build', unit: t('habits.defaultUnit'), target: '', color: null, icon: null, days: null, goal: null, points: 1 });
@@ -189,7 +195,7 @@ const iconBtn =
 
     <p v-if="error" role="alert" class="rounded-xl border border-sage/30 bg-sage/10 p-4 text-sm text-sage-fg">
       {{ error }}
-      <button type="button" class="ml-1 cursor-pointer font-medium underline underline-offset-2" @click="load">{{ t('common.retry') }}</button>
+      <button type="button" class="ml-1 cursor-pointer font-medium underline underline-offset-2" @click="load()">{{ t('common.retry') }}</button>
     </p>
     <p v-if="rowError" role="alert" class="rounded-xl border border-sage/30 bg-sage/10 p-4 text-sm text-sage-fg">{{ rowError }}</p>
 

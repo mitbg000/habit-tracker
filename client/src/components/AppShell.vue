@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { CalendarCheck, ChartColumn, ListChecks, NotebookPen, Settings, LogOut } from 'lucide-vue-next';
 import BrandMark from './BrandMark.vue';
@@ -7,6 +7,7 @@ import ConfirmDialog from './ConfirmDialog.vue';
 import LangSwitch from './LangSwitch.vue';
 import { auth, logout } from '../store';
 import { t } from '../i18n';
+import { preloadViews } from '../router';
 
 const router = useRouter();
 
@@ -17,6 +18,8 @@ const nav = [
   { to: '/noteline', label: 'nav.noteline', icon: NotebookPen },
   { to: '/cai-dat', label: 'nav.settings', icon: Settings },
 ];
+
+onMounted(() => setTimeout(preloadViews, 800));
 
 const confirmOpen = ref(false);
 const loggingOut = ref(false);

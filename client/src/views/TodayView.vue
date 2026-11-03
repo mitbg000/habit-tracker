@@ -6,6 +6,7 @@ import DayStrip from '../components/DayStrip.vue';
 import HabitRow from '../components/HabitRow.vue';
 import BaseButton from '../components/BaseButton.vue';
 import { api } from '../api';
+import { useFreshData } from '../lib/freshData';
 import { addDays, todayKey, isValidKey, weekdayName, dayMonth } from '../lib/dates';
 import { currentStreak, isScheduled, dayScore, statusOf } from '../lib/stats';
 import { t } from '../i18n';
@@ -28,6 +29,7 @@ const saveState = ref('idle'); // idle | saving | saved
 const habits = ref([]);
 const entries = reactive({}); // `${habitId}|${date}` -> { value, meta }
 const day = reactive({ mood: null, note: '' });
+const dayData = reactive({}); // date -> { mood, note }
 
 const key = (habitId, date) => `${habitId}|${date}`;
 const getEntry = (habitId, date) => entries[key(habitId, date)];
@@ -38,26 +40,45 @@ const dueHabits = computed(() =>
   activeHabits.value.filter((h) => isScheduled(h, dateKey.value) || getEntry(h.id, dateKey.value)),
 );
 
-async function load() {
-  loading.value = true;
-  loadError.value = '';
+// Nạp từ xa về trước tới hôm nay rồi giữ lại, nên chuyển giữa các ngày đã nạp không cần gọi máy chủ
+let loadedFrom = null;
+const isLoaded = (date) => loadedFrom && addDays(date, -HISTORY_DAYS) >= loadedFrom;
+
+function showDay() {
+  const d = dayData[dateKey.value];
+  day.mood = d ? d.mood : null;
+  day.note = d ? d.note : '';
+}
+
+async function load(silent = false) {
+  if (!silent) {
+    loading.value = true;
+    loadError.value = '';
+  }
   try {
-    const from = addDays(dateKey.value, -HISTORY_DAYS);
-    const data = await api.get(`/range?from=${from}&to=${dateKey.value}`);
+    // Nạp dư 90 ngày để lùi về các ngày gần đó không phải gọi lại
+    const need = addDays(dateKey.value, -(HISTORY_DAYS + 90));
+    const from = loadedFrom && loadedFrom < need ? loadedFrom : need;
+    const data = await api.get(`/range?from=${from}&to=${today}`);
     habits.value = data.habits;
     for (const k of Object.keys(entries)) delete entries[k];
     for (const e of data.entries) entries[key(e.habitId, e.date)] = { value: e.value, meta: e.meta };
-    const d = data.days.find((x) => x.date === dateKey.value);
-    day.mood = d ? d.mood : null;
-    day.note = d ? d.note : '';
+    for (const k of Object.keys(dayData)) delete dayData[k];
+    for (const d of data.days) dayData[d.date] = { mood: d.mood, note: d.note };
+    loadedFrom = from;
+    showDay();
   } catch (err) {
-    loadError.value = err.message;
+    if (!silent) loadError.value = err.message;
   } finally {
     loading.value = false;
   }
 }
 
-watch(dateKey, load, { immediate: true });
+load();
+watch(dateKey, () => (isLoaded(dateKey.value) ? showDay() : load()));
+useFreshData(() => {
+  if (saveState.value !== 'saving') load(true);
+});
 
 function select(key) {
   router.replace({ name: 'today', query: key >= today ? {} : { d: key } });
@@ -107,12 +128,15 @@ async function setEntry(habit, value, meta) {
 async function saveDay(patch) {
   markSaving();
   const before = { mood: day.mood, note: day.note };
+  const date = dateKey.value;
   Object.assign(day, patch);
+  dayData[date] = { ...before, ...patch };
   try {
-    await api.put(`/day/${dateKey.value}`, patch);
+    await api.put(`/day/${date}`, patch);
     markSaved();
   } catch (err) {
-    Object.assign(day, before);
+    dayData[date] = before;
+    if (date === dateKey.value) Object.assign(day, before);
     markFailed(err);
   }
 }
@@ -177,7 +201,7 @@ const progressPct = computed(() => (score.value.max ? Math.round((score.value.ea
 
     <p v-if="loadError" role="alert" class="rounded-xl border border-sage/30 bg-sage/10 p-4 text-sm text-sage-fg">
       {{ loadError }}
-      <button type="button" class="ml-1 cursor-pointer font-medium underline underline-offset-2" @click="load">{{ t('common.retry') }}</button>
+      <button type="button" class="ml-1 cursor-pointer font-medium underline underline-offset-2" @click="load()">{{ t('common.retry') }}</button>
     </p>
 
     <template v-else>

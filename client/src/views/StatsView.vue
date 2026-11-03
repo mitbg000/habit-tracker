@@ -1,6 +1,7 @@
 <script setup>
 import { ref, reactive, computed, watch, nextTick } from 'vue';
 import { api } from '../api';
+import { useFreshData } from '../lib/freshData';
 import { t } from '../i18n';
 import HabitIcon from '../components/HabitIcon.vue';
 import PeriodMenu from '../components/PeriodMenu.vue';
@@ -26,21 +27,30 @@ const moods = reactive({}); // date -> mood
 
 const getEntry = (habitId, date) => entries[`${habitId}|${date}`];
 
-async function load() {
-  loading.value = true;
-  error.value = '';
+function fill(data) {
+  for (const e of data.entries) entries[`${e.habitId}|${e.date}`] = { value: e.value, meta: e.meta };
+  for (const d of data.days) if (d.mood != null) moods[d.date] = d.mood;
+}
+
+async function load(silent = false) {
+  if (!silent) {
+    loading.value = true;
+    error.value = '';
+  }
   try {
-    const data = await api.get(`/range?from=${addDays(today, -(LOAD_DAYS - 1))}&to=${today}`);
+    const data = await api.get(`/range?from=${loadedFrom.value}&to=${today}`);
     habits.value = data.habits;
-    for (const e of data.entries) entries[`${e.habitId}|${e.date}`] = { value: e.value, meta: e.meta };
-    for (const d of data.days) if (d.mood != null) moods[d.date] = d.mood;
+    for (const k of Object.keys(entries)) delete entries[k];
+    for (const k of Object.keys(moods)) delete moods[k];
+    fill(data);
   } catch (err) {
-    error.value = err.message;
+    if (!silent) error.value = err.message;
   } finally {
     loading.value = false;
   }
 }
 load();
+useFreshData(() => load(true));
 
 /* ---------- khoảng thời gian ---------- */
 // Ngày sớm nhất có dữ liệu (cho "Tất cả")
@@ -76,8 +86,7 @@ async function loadEarlier(from) {
   const to = addDays(loadedFrom.value, -1);
   if (from > to) return;
   const data = await api.get(`/range?from=${from}&to=${to}`);
-  for (const e of data.entries) entries[`${e.habitId}|${e.date}`] = { value: e.value, meta: e.meta };
-  for (const d of data.days) if (d.mood != null) moods[d.date] = d.mood;
+  fill(data);
   const dates = [...data.entries.map((e) => e.date), ...data.days.map((d) => d.date)].sort();
   loadedFrom.value = dates.length && dates[0] < from ? dates[0] : from;
 }
@@ -291,7 +300,7 @@ const moodLinks = computed(() => {
 
     <p v-if="error" role="alert" class="rounded-xl border border-sage/30 bg-sage/10 p-4 text-sm text-sage-fg">
       {{ error }}
-      <button type="button" class="ml-1 cursor-pointer font-medium underline underline-offset-2" @click="load">{{ t('common.retry') }}</button>
+      <button type="button" class="ml-1 cursor-pointer font-medium underline underline-offset-2" @click="load()">{{ t('common.retry') }}</button>
     </p>
     <p v-else-if="loading" class="py-6 text-center text-sm text-muted">{{ t('common.loading') }}</p>
 

@@ -17,7 +17,7 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
-  scrollBehavior: () => ({ top: 0 }),
+  scrollBehavior: (to, from, saved) => saved || { top: 0 },
 });
 
 router.beforeEach(async (to) => {
@@ -32,5 +32,10 @@ function setTitle(route) {
 }
 router.afterEach(setTitle);
 watch(locale, () => setTitle(router.currentRoute.value));
+
+// Tải sẵn mã các trang khi rảnh để lần chuyển trang đầu tiên cũng nhanh
+export function preloadViews() {
+  for (const r of routes) if (r.component && !r.meta?.public) r.component().catch(() => {});
+}
 
 export default router;

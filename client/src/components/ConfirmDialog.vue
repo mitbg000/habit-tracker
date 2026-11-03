@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, nextTick, onBeforeUnmount, useId } from 'vue';
+import { ref, watch, nextTick, onBeforeUnmount, onDeactivated, useId } from 'vue';
 import { Trash2, LogOut } from 'lucide-vue-next';
 import BaseButton from './BaseButton.vue';
 import { t } from '../i18n';
@@ -48,6 +48,11 @@ watch(
 onBeforeUnmount(() => {
   clearTimeout(timer);
   document.body.style.overflow = '';
+});
+
+// Trang được giữ lại khi rời đi (KeepAlive), nên phải tự đóng nếu đang mở
+onDeactivated(() => {
+  if (props.open) emit('cancel');
 });
 
 function onKeydown(e) {
