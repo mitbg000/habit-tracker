@@ -133,6 +133,8 @@ chown -R www:www /www/wwwroot/habit-tracker
 
 ## Deploy qua git
 
+Hướng dẫn đầy đủ từ đầu đến cuối: [docs/DEPLOY.md](docs/DEPLOY.md).
+
 Repo công khai nên máy chủ clone được qua HTTPS, không cần SSH key.
 
 **Lần đầu**, trong Terminal của aaPanel:

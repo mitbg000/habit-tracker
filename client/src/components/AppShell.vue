@@ -89,7 +89,8 @@ async function doLogout() {
         <LangSwitch />
       </header>
 
-      <main class="flex-1 p-4 pb-24 sm:p-6 sm:pb-24 lg:pb-6">
+      <!-- Trang nằm giữa phần còn lại bên cạnh sidebar -->
+      <main class="flex-1 p-4 pb-24 sm:p-6 sm:pb-24 lg:pb-6 [&>*]:mx-auto">
         <slot />
       </main>
     </div>
