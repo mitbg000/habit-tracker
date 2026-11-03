@@ -1,0 +1,118 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+
+/* Bộ token theo skill ui-ux (evondevKit), bản sáng. App này không làm dark mode.
+
+   ĐỔI THƯƠNG HIỆU: màu nhấn sửa ở khối "MÀU NHẤN" ngay dưới, font sửa ở dòng --app-font.
+   Ngoài hai khối đó, không rải mã màu ở đâu khác. */
+:root {
+  color-scheme: light;
+
+  /* ===== FONT, MỘT DÒNG ===== */
+  --app-font: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* ===== MÀU NHẤN ===== */
+  --primary: #181818;
+  --primary-hover: #2e2e2e;
+  --primary-foreground: #ffffff;
+  /* ========================= */
+
+  /* Xanh lá xám, bão hoà thấp: dùng cho trạng thái không đạt / hành động nguy hiểm (thay cho hồng) */
+  --sage: #6f9a7e;
+  --sage-fg: #44694f;
+
+
+  --background: #f4f4f6;
+  --surface: #ffffff;
+  --foreground: #2c2c2c;
+  --muted: #707070;
+  --border: #f7f7f8;
+  --border-strong: #eaeaea;
+  --tab-rail: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --surface-overlay: #ffffff;
+  --elevation-popover: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --elevation-modal: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --item-hover: #f4f4f6;
+  --chart-fill: #30a14e; /* xanh của biểu đồ điểm */
+  --secondary: #e7e8ec;
+  --secondary-hover: #dbdce2;
+  --tab-selected: color-mix(in srgb, var(--foreground) 8%, transparent);
+  --background-hover: #e7e7ea;
+  --surface-hover: #f8f8fa;
+  --button-hover-surface: #f1f1f3;
+  --button-hover-page: #e4e4e7;
+  --button-hover: var(--button-hover-page);
+  --shadow-segment-track: inset 0 0 0 1px rgb(0 0 0 / 0.05), inset 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-segment-thumb: 0 0 0 1px rgb(0 0 0 / 0.04), 0 1px 2px rgb(0 0 0 / 0.06), 0 2px 6px -2px rgb(0 0 0 / 0.08);
+  --ring-focus: rgba(24, 24, 24, 0.1);
+  --border-focus: var(--primary);
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --font-sans: var(--app-font);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-sage: var(--sage);
+  --color-sage-fg: var(--sage-fg);
+
+  --color-background: var(--background);
+  --color-background-hover: var(--background-hover);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-item-hover: var(--item-hover);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-tab-rail: var(--tab-rail);
+  --color-chart-fill: var(--chart-fill);
+  --color-secondary: var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-button-hover: var(--button-hover);
+  --color-tab-selected: var(--tab-selected);
+
+  --border-color-focus: var(--border-focus);
+  --ring-color-focus: var(--ring-focus);
+
+  --shadow-popover: var(--elevation-popover);
+  --shadow-modal: var(--elevation-modal);
+}
+
+/* Nền rê của nút viền theo nền phía sau */
+.bg-surface *,
+.bg-surface-overlay * { --button-hover: var(--button-hover-surface); }
+.bg-surface .bg-background *,
+[class~="hover:bg-item-hover"]:hover * { --button-hover: var(--button-hover-page); }
+
+/* Thanh cuộn tự ẩn (I18) */
+* { --scrollbar-thumb: transparent; }
+*:hover { --scrollbar-thumb: color-mix(in srgb, var(--foreground) 16%, transparent); }
+.is-scrolling { --scrollbar-thumb: color-mix(in srgb, var(--foreground) 28%, transparent); }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--foreground) 40%, transparent); }
+@supports not selector(::-webkit-scrollbar) {
+  * { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+  *:hover { scrollbar-color: color-mix(in srgb, var(--foreground) 18%, transparent) transparent; }
+}
+.scrollbar-clean { scrollbar-width: none; }
+.scrollbar-clean::-webkit-scrollbar { display: none; }
+
+html, body { background: var(--background); }
+body {
+  font-family: var(--app-font);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ô số: bỏ nút tăng giảm của trình duyệt */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
