@@ -133,16 +133,11 @@ chown -R www:www /www/wwwroot/habit-tracker
 
 ## Deploy qua git
 
-Mã nguồn nằm ở repo riêng tư, nên máy chủ cần một deploy key (chỉ đọc).
+Repo công khai nên máy chủ clone được qua HTTPS, không cần SSH key.
 
 **Lần đầu**, trong Terminal của aaPanel:
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/habit_tracker -N ""
-cat ~/.ssh/habit_tracker.pub
-```
-Dán khoá công khai vào GitHub: `Settings` của repo → `Deploy keys` → `Add deploy key`, không tích quyền ghi. Sau đó:
-```bash
-git clone -c core.sshCommand="ssh -i ~/.ssh/habit_tracker" git@github.com:mitbg000/habit-tracker.git /www/wwwroot/habit-tracker
+git clone https://github.com/mitbg000/habit-tracker.git /www/wwwroot/habit-tracker
 cd /www/wwwroot/habit-tracker
 cp .env.example .env        # rồi sửa theo bước 4 ở trên
 npm ci --omit=dev
