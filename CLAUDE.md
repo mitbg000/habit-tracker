@@ -34,6 +34,8 @@ Web theo dõi thói quen: Vue 3 + Express 5 + Knex (SQLite hoặc MySQL/aaPanel)
 ## Đã xong (đợt 4)
 - Việc đã làm: bảng `tasks`, API trong `routes/data.js`, `components/DayTasks.vue`. Điểm cộng vào cả điểm đạt và điểm tối đa của ngày (Today, DayStrip, Stats).
 
+- `scripts/sqlite-to-mysql.js`: chép dữ liệu SQLite sang MySQL trống, xem `docs/DEPLOY.md`. `deploy.sh` dừng nếu Node dưới 18.
+
 ## Mẹo
 - Không dùng `pkill -f` (tự giết shell); dùng `fuser -k 3000/tcp`.
 - Tài khoản demo cần seed lại (`demo / demo12345`) vì thư mục `data/` không đóng gói.

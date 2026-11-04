@@ -129,11 +129,37 @@ cd /www/wwwroot/habit-tracker && bash scripts/deploy.sh
 
 Sau đó bấm **Restart** project trong aaPanel. Script không ghi đè `.env` và dữ liệu, cột mới trong database tự được thêm.
 
+Lệnh `node` trong Terminal có thể là bản cũ của hệ thống, khác bản aaPanel dùng để chạy project. Nếu script báo Node quá cũ, xem các bản đã cài rồi chọn đúng bản của project (thay `v22.x.x`) trước khi chạy lại script:
+
+```bash
+ls /www/server/nodejs/
+```
+
+```bash
+export PATH=/www/server/nodejs/v22.x.x/bin:$PATH
+```
+
 Nếu git báo `dubious ownership` khi chạy script bằng `root`, chạy lệnh dưới rồi chạy lại script. Sau đó chạy lại lệnh `chown` ở bước 4 để trả quyền cho `www`.
 
 ```bash
 git config --global --add safe.directory /www/wwwroot/habit-tracker
 ```
+
+## Chuyển từ SQLite sang MySQL
+
+Dùng khi `.env` đang có `DB_CLIENT=sqlite` và muốn chuyển dữ liệu đã có sang MySQL. Script chỉ đọc file SQLite và từ chối chạy nếu MySQL đã có dữ liệu.
+
+1. Tạo database MySQL trống (bước 2) và điền `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` vào `.env`. Giữ nguyên `DB_CLIENT=sqlite`.
+2. **Stop** project trong aaPanel để dữ liệu không đổi trong lúc chép.
+3. Chép dữ liệu. Thấy dòng `Đã chép xong` là thành công:
+
+```bash
+cd /www/wwwroot/habit-tracker && cp -a data data-backup && node scripts/sqlite-to-mysql.js
+```
+
+4. Sửa `.env` thành `DB_CLIENT=mysql`, rồi **Start** project và kiểm tra dữ liệu.
+
+Nếu có vấn đề, đổi lại `DB_CLIENT=sqlite` rồi Start: dữ liệu SQLite vẫn nguyên ở trạng thái lúc chép, những gì ghi sau đó trên MySQL thì không có trong SQLite.
 
 ## Sao lưu
 
@@ -148,6 +174,7 @@ Vào `Databases` → `Backup`, hoặc đặt lịch trong `Cron`. Dữ liệu n�
 | Trang trắng hoặc 502 | Cổng trong Node project khác `PORT`, hoặc project chưa chạy. Xem log của project trong aaPanel |
 | Báo "thao tác quá nhanh" với mọi người | Nginx chưa chuyển đúng IP thật. Dùng cấu hình reverse proxy mặc định của aaPanel |
 | Cập nhật xong giao diện không đổi | Quên `npm run build` trước khi push, hoặc tab cũ còn mở (tải lại trang) |
+| Log có `SyntaxError: Unexpected token '?'` | `node_modules` được cài hoặc chạy bằng Node quá cũ. Chọn đúng bản Node như mục cập nhật, chạy lại script rồi Start project |
 | Tạo tài khoản báo đang tắt | `ALLOW_REGISTER=false`. Đổi lại `true`, Restart, tạo xong đổi về `false` |
 
 ## Lưu ý
