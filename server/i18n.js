@@ -40,6 +40,9 @@ const EN = {
   'Khoảng ngày không hợp lệ.': 'Invalid date range.',
   'Ghi chú không được để trống (tối đa 5000 ký tự).': 'A note cannot be empty (max 5000 characters).',
   'Không tìm thấy ghi chú.': 'Note not found.',
+  'Tên việc từ 1 đến 120 ký tự.': 'A task name must be 1 to 120 characters.',
+  'Tối đa 50 việc mỗi ngày.': 'You can add up to 50 tasks a day.',
+  'Không tìm thấy việc này.': 'Task not found.',
 };
 
 const LOCK_RE = /^Tài khoản tạm khóa do nhập sai nhiều lần\. Thử lại sau (\d+) phút\.$/;

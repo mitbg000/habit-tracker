@@ -12,6 +12,8 @@ const ICONS = [
 ];
 const GOALS = [7, 14, 30, 60, 90, 180, 365];
 const META_KEYS = ['time', 'place', 'feeling', 'note'];
+const MAX_TASK_TITLE = 120;
+const MAX_TASKS_PER_DAY = 50;
 
 const bad = (res, msg) => res.status(400).json({ error: msg });
 
@@ -48,6 +50,10 @@ function parseHabit(h) {
     archived: Boolean(Number(h.archived)),
     createdAt: Number(h.created_at),
   };
+}
+
+function parseTask(r) {
+  return { id: r.id, date: r.date, title: r.title, points: Number(r.points) || 1, createdAt: Number(r.created_at) };
 }
 
 async function ownHabit(userId, id) {
@@ -172,15 +178,17 @@ router.delete('/habits/:id', async (req, res) => {
 router.get('/day/:date', async (req, res) => {
   const { date } = req.params;
   if (!DATE_RE.test(date)) return bad(res, 'Ngày không hợp lệ.');
-  const [habits, entries, day] = await Promise.all([
+  const [habits, entries, day, tasks] = await Promise.all([
     db('habits').where({ user_id: req.user.id, archived: false }).orderBy([{ column: 'sort' }, { column: 'id' }]),
     db('entries').where({ user_id: req.user.id, date }),
     db('days').where({ user_id: req.user.id, date }).first(),
+    db('tasks').where({ user_id: req.user.id, date }).orderBy('id'),
   ]);
   res.json({
     habits: habits.map(parseHabit),
     entries: entries.map(parseEntry),
     day: day ? { mood: day.mood == null ? null : Number(day.mood), note: day.note || '' } : { mood: null, note: '' },
+    tasks: tasks.map(parseTask),
   });
 });
 
@@ -232,30 +240,76 @@ router.put('/day/:date', async (req, res) => {
   res.json({ day: { mood: row.mood == null ? null : Number(row.mood), note: row.note || '' } });
 });
 
+/* ---------------- Việc đã làm trong ngày ---------------- */
+
+function validateTask(body, partial = false) {
+  const out = {};
+  if (!partial || body.title !== undefined) {
+    const title = String(body.title ?? '').trim();
+    if (!title || title.length > MAX_TASK_TITLE) return { error: 'Tên việc từ 1 đến 120 ký tự.' };
+    out.title = title;
+  }
+  if (!partial || body.points !== undefined) {
+    if (![1, 2, 3].includes(Number(body.points))) return { error: 'Mức điểm không hợp lệ.' };
+    out.points = Number(body.points);
+  }
+  return { data: out };
+}
+
+router.post('/tasks', async (req, res) => {
+  const date = req.body?.date;
+  if (!DATE_RE.test(String(date))) return bad(res, 'Ngày không hợp lệ.');
+  const { error, data } = validateTask(req.body || {});
+  if (error) return bad(res, error);
+  const count = await db('tasks').where({ user_id: req.user.id, date }).count({ c: '*' }).first();
+  if (Number(count.c) >= MAX_TASKS_PER_DAY) return bad(res, 'Tối đa 50 việc mỗi ngày.');
+  const [id] = await db('tasks').insert({ user_id: req.user.id, date, ...data, created_at: Date.now() });
+  const row = await db('tasks').where({ id: typeof id === 'object' ? id.id : id }).first();
+  res.status(201).json({ task: parseTask(row) });
+});
+
+router.patch('/tasks/:id', async (req, res) => {
+  const task = await db('tasks').where({ id: Number(req.params.id), user_id: req.user.id }).first();
+  if (!task) return res.status(404).json({ error: 'Không tìm thấy việc này.' });
+  const { error, data } = validateTask(req.body || {}, true);
+  if (error) return bad(res, error);
+  if (Object.keys(data).length) await db('tasks').where({ id: task.id }).update(data);
+  res.json({ task: parseTask(await db('tasks').where({ id: task.id }).first()) });
+});
+
+router.delete('/tasks/:id', async (req, res) => {
+  const n = await db('tasks').where({ id: Number(req.params.id), user_id: req.user.id }).del();
+  if (!n) return res.status(404).json({ error: 'Không tìm thấy việc này.' });
+  res.json({ ok: true });
+});
+
 /* ---------------- Dữ liệu cho thống kê ---------------- */
 
 router.get('/range', async (req, res) => {
   const { from, to } = req.query;
   if (!DATE_RE.test(String(from)) || !DATE_RE.test(String(to))) return bad(res, 'Khoảng ngày không hợp lệ.');
-  const [habits, entries, days] = await Promise.all([
+  const [habits, entries, days, tasks] = await Promise.all([
     db('habits').where({ user_id: req.user.id }).orderBy([{ column: 'sort' }, { column: 'id' }]),
     db('entries').where({ user_id: req.user.id }).whereBetween('date', [from, to]),
     db('days').where({ user_id: req.user.id }).whereBetween('date', [from, to]),
+    db('tasks').where({ user_id: req.user.id }).whereBetween('date', [from, to]).orderBy('id'),
   ]);
   res.json({
     habits: habits.map(parseHabit),
     entries: entries.map(parseEntry),
     days: days.map((d) => ({ date: d.date, mood: d.mood == null ? null : Number(d.mood), note: d.note || '' })),
+    tasks: tasks.map(parseTask),
   });
 });
 
 /* ---------------- Xuất dữ liệu ---------------- */
 
 router.get('/export', async (req, res) => {
-  const [habits, entries, days, notes] = await Promise.all([
+  const [habits, entries, days, tasks, notes] = await Promise.all([
     db('habits').where({ user_id: req.user.id }),
     db('entries').where({ user_id: req.user.id }).orderBy('date'),
     db('days').where({ user_id: req.user.id }).orderBy('date'),
+    db('tasks').where({ user_id: req.user.id }).orderBy('id'),
     db('notes').where({ user_id: req.user.id }).orderBy('id'),
   ]);
   res.set('Content-Disposition', 'attachment; filename="habit-tracker-export.json"');
@@ -264,6 +318,7 @@ router.get('/export', async (req, res) => {
     habits: habits.map(parseHabit),
     entries: entries.map(parseEntry),
     days: days.map((d) => ({ date: d.date, mood: d.mood, note: d.note })),
+    tasks: tasks.map(({ date, title, points }) => ({ date, title, points: Number(points) })),
     notes: notes.map((n) => ({
       body: n.body,
       color: n.color || null,

@@ -31,6 +31,9 @@ Web theo dõi thói quen: Vue 3 + Express 5 + Knex (SQLite hoặc MySQL/aaPanel)
 - Điểm ngày: `dayScore`/`habitDueOn` trong `lib/stats.js`. Thống kê: menu khoảng thời gian, thẻ Tổng quan với biểu đồ điểm theo ngày. Chỉ hiện điểm, không dùng phần trăm và heatmap.
 - Giới hạn tần suất API dễ chạm khi seed bằng curl: seed thẳng vào DB.
 
+## Đã xong (đợt 4)
+- Việc đã làm: bảng `tasks`, API trong `routes/data.js`, `components/DayTasks.vue`. Điểm cộng vào cả điểm đạt và điểm tối đa của ngày (Today, DayStrip, Stats).
+
 ## Mẹo
 - Không dùng `pkill -f` (tự giết shell); dùng `fuser -k 3000/tcp`.
 - Tài khoản demo cần seed lại (`demo / demo12345`) vì thư mục `data/` không đóng gói.

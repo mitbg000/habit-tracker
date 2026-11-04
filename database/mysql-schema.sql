@@ -74,3 +74,15 @@ CREATE TABLE IF NOT EXISTS `notes` (
   KEY `notes_user_id_id_index` (`user_id`, `id`),
   CONSTRAINT `notes_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `tasks` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` INT UNSIGNED NOT NULL,
+  `date` VARCHAR(10) NOT NULL,
+  `title` VARCHAR(120) NOT NULL,
+  `points` INT NOT NULL DEFAULT 1,
+  `created_at` BIGINT NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `tasks_user_id_date_index` (`user_id`, `date`),
+  CONSTRAINT `tasks_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

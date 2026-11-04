@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { Angry, Frown, Meh, Smile, Laugh } from 'lucide-vue-next';
 import DayStrip from '../components/DayStrip.vue';
 import HabitRow from '../components/HabitRow.vue';
+import DayTasks from '../components/DayTasks.vue';
 import BaseButton from '../components/BaseButton.vue';
 import { api } from '../api';
 import { useFreshData } from '../lib/freshData';
@@ -30,6 +31,7 @@ const habits = ref([]);
 const entries = reactive({}); // `${habitId}|${date}` -> { value, meta }
 const day = reactive({ mood: null, note: '' });
 const dayData = reactive({}); // date -> { mood, note }
+const tasksByDate = reactive({}); // date -> danh sách việc đã làm
 
 const key = (habitId, date) => `${habitId}|${date}`;
 const getEntry = (habitId, date) => entries[key(habitId, date)];
@@ -65,6 +67,8 @@ async function load(silent = false) {
     for (const e of data.entries) entries[key(e.habitId, e.date)] = { value: e.value, meta: e.meta };
     for (const k of Object.keys(dayData)) delete dayData[k];
     for (const d of data.days) dayData[d.date] = { mood: d.mood, note: d.note };
+    for (const k of Object.keys(tasksByDate)) delete tasksByDate[k];
+    for (const task of data.tasks) (tasksByDate[task.date] ||= []).push(task);
     loadedFrom = from;
     showDay();
   } catch (err) {
@@ -151,6 +155,13 @@ function commitNote() {
   if (noteDraft.value !== day.note) saveDay({ note: noteDraft.value });
 }
 
+const NO_TASKS = [];
+const tasksOf = (date) => tasksByDate[date] || NO_TASKS;
+const taskPoints = (date) => tasksOf(date).reduce((sum, task) => sum + task.points, 0);
+function changeTasks(date, update) {
+  tasksByDate[date] = update(tasksOf(date));
+}
+
 /* ---------- hiển thị ---------- */
 // Điểm trong ngày trên đúng các thói quen đang hiện
 const score = computed(() => {
@@ -162,6 +173,7 @@ const score = computed(() => {
   }
   return { earned, max };
 });
+const dayTaskPoints = computed(() => taskPoints(dateKey.value));
 const streakOf = (habit) => currentStreak(habit, getEntry, dateKey.value, HISTORY_DAYS);
 
 const MOOD_ICONS = [Angry, Frown, Meh, Smile, Laugh];
@@ -171,7 +183,8 @@ const moodLabel = computed(() => MOODS.value.find((m) => m.v === day.mood)?.labe
 // Điểm của một ngày trong thanh 7 ngày
 function progressOf(key) {
   const { earned, max } = dayScore(activeHabits.value, getEntry, key, today, true);
-  return { done: earned, total: max };
+  const extra = taskPoints(key);
+  return { done: earned + extra, total: max + extra };
 }
 const progressPct = computed(() => (score.value.max ? Math.round((score.value.earned / score.value.max) * 100) : 0));
 </script>
@@ -184,6 +197,7 @@ const progressPct = computed(() => (score.value.max ? Math.round((score.value.ea
         <h1 class="text-xl font-semibold">{{ isToday ? t('dates.today') : weekdayName(dateKey) }}</h1>
         <p class="mt-1 text-sm text-muted">
           {{ isToday ? weekdayName(dateKey) + ', ' : '' }}{{ dayMonth(dateKey) }}
+          <template v-if="dayTaskPoints"> · {{ t('tasks.dayTotal', { n: score.earned + dayTaskPoints, max: score.max + dayTaskPoints }) }}</template>
         </p>
       </div>
       <BaseButton v-if="!isToday" @click="select(today)">{{ t('today.backToToday') }}</BaseButton>
@@ -247,6 +261,9 @@ const progressPct = computed(() => (score.value.max ? Math.round((score.value.ea
           />
         </ul>
       </section>
+
+      <!-- Việc làm tự do trong ngày -->
+      <DayTasks v-if="!loading" :date="dateKey" :tasks="tasksOf(dateKey)" @change="changeTasks" />
 
       <!-- Tâm trạng và ghi chú -->
       <section v-if="!loading" class="rounded-2xl border border-border bg-surface p-4 sm:p-5" aria-labelledby="h-mood">

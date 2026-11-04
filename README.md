@@ -14,7 +14,7 @@
 | Trang | Việc làm được |
 | --- | --- |
 | Đăng nhập / Đăng ký | Tạo tài khoản bằng tên đăng nhập + mật khẩu (không cần email) |
-| Hôm nay | Ghi từng thói quen, chọn tâm trạng 1–5, ghi chú; khi tái phạm có thể ghi nhanh lúc nào / ở đâu / cảm thấy gì. Xem lại và sửa các ngày trước |
+| Hôm nay | Ghi từng thói quen, thêm tự do các việc đã làm trong ngày kèm 1–3 điểm, chọn tâm trạng 1–5, ghi chú; khi tái phạm có thể ghi nhanh lúc nào / ở đâu / cảm thấy gì. Xem lại và sửa các ngày trước |
 | Thống kê | Menu khoảng thời gian (7 ngày đến 1 năm, tất cả, tuỳ chọn). Thẻ Tổng quan: số liệu gọn và biểu đồ điểm từng ngày. Điểm và huy hiệu của từng thói quen, quy luật tái phạm, việc nào giúp tâm trạng tốt hơn |
 | Thói quen | Thêm, sửa, sắp xếp, lưu trữ, xoá |
 | Noteline | Ghi nhanh suy nghĩ (Ctrl/⌘ + Enter để lưu), xem theo dòng thời gian gom theo ngày (mới nhất trước), tìm kiếm, sửa tại chỗ, xoá, tải thêm 10 mục mỗi lần |
@@ -58,7 +58,7 @@ Bấm nút **VI | EN** ở chân thanh bên (máy tính), trên thanh đầu tra
 Ghi lại ba giá trị này để điền vào `.env`.
 
 > **Nhập database:** có hai cách, chọn một.
-> - *Để ứng dụng tự tạo bảng* (đơn giản nhất): không cần làm gì, lần khởi động đầu tiên sẽ tự tạo 5 bảng (`users`, `habits`, `entries`, `days`, `notes`). Bản cũ nâng cấp lên cũng tự thêm bảng `notes`.
+> - *Để ứng dụng tự tạo bảng* (đơn giản nhất): không cần làm gì, lần khởi động đầu tiên sẽ tự tạo 6 bảng (`users`, `habits`, `entries`, `days`, `notes`, `tasks`). Bản cũ nâng cấp lên cũng tự thêm các bảng còn thiếu.
 > - *Nhập sẵn bằng file:* ở danh sách database bấm `Import` → chọn `database/mysql-schema.sql` trong gói này.
 >
 > Cả hai cho ra cùng một cấu trúc, chạy lại nhiều lần không sao.
@@ -185,6 +185,12 @@ database/          mysql-schema.sql để nhập tay vào MySQL
 scripts/deploy.sh  cập nhật bản trên máy chủ từ GitHub
 .env.example       mẫu cấu hình
 ```
+
+## Bảng `tasks` (Việc đã làm)
+
+Mỗi dòng là một việc đã làm trong một ngày, không lặp lại. Điểm (1–3) cộng vào cả điểm đạt và điểm tối đa của ngày đó, nên không làm giảm kết quả các thói quen.
+
+API (cần đăng nhập): `POST /api/tasks` (`date`, `title`, `points`), `PATCH /api/tasks/:id`, `DELETE /api/tasks/:id`. Danh sách trả về cùng `GET /api/range`.
 
 ## Bảng `notes` (Noteline)
 

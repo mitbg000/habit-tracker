@@ -125,6 +125,20 @@ async function migrate() {
     await db.schema.alterTable('notes', (t) => { t.string('color', 16).nullable(); });
   }
 
+  // Việc đã làm trong một ngày, ghi tự do và không lặp lại như thói quen
+  if (!(await db.schema.hasTable('tasks'))) {
+    await db.schema.createTable('tasks', (t) => {
+      t.increments('id').primary();
+      t.integer('user_id').unsigned().notNullable()
+        .references('id').inTable('users').onDelete('CASCADE');
+      t.string('date', 10).notNullable();
+      t.string('title', 120).notNullable();
+      t.integer('points').notNullable().defaultTo(1); // 1, 2 hoặc 3 như thói quen
+      t.bigInteger('created_at').notNullable();
+      t.index(['user_id', 'date']);
+    });
+  }
+
   if (!(await db.schema.hasTable('days'))) {
     await db.schema.createTable('days', (t) => {
       t.increments('id').primary();

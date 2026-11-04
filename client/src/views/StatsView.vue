@@ -24,12 +24,14 @@ const error = ref('');
 const habits = ref([]);
 const entries = reactive({});
 const moods = reactive({}); // date -> mood
+const taskPoints = reactive({}); // date -> tổng điểm việc đã làm
 
 const getEntry = (habitId, date) => entries[`${habitId}|${date}`];
 
 function fill(data) {
   for (const e of data.entries) entries[`${e.habitId}|${e.date}`] = { value: e.value, meta: e.meta };
   for (const d of data.days) if (d.mood != null) moods[d.date] = d.mood;
+  for (const task of data.tasks) taskPoints[task.date] = (taskPoints[task.date] || 0) + task.points;
 }
 
 async function load(silent = false) {
@@ -42,6 +44,7 @@ async function load(silent = false) {
     habits.value = data.habits;
     for (const k of Object.keys(entries)) delete entries[k];
     for (const k of Object.keys(moods)) delete moods[k];
+    for (const k of Object.keys(taskPoints)) delete taskPoints[k];
     fill(data);
   } catch (err) {
     if (!silent) error.value = err.message;
@@ -65,6 +68,7 @@ const earliestKey = computed(() => {
     if (d < min) min = d;
   }
   for (const d of Object.keys(moods)) if (d < min) min = d;
+  for (const d of Object.keys(taskPoints)) if (d < min) min = d;
   return min;
 });
 
@@ -87,7 +91,7 @@ async function loadEarlier(from) {
   if (from > to) return;
   const data = await api.get(`/range?from=${from}&to=${to}`);
   fill(data);
-  const dates = [...data.entries.map((e) => e.date), ...data.days.map((d) => d.date)].sort();
+  const dates = [...data.entries.map((e) => e.date), ...data.days.map((d) => d.date), ...data.tasks.map((task) => task.date)].sort();
   loadedFrom.value = dates.length && dates[0] < from ? dates[0] : from;
 }
 
@@ -183,7 +187,7 @@ const habitStats = computed(() =>
 );
 
 /* ---------- tổng quan ---------- */
-// Số liệu gộp mọi thói quen của từng ngày trong khoảng đang xem
+// Số liệu gộp mọi thói quen và việc đã làm của từng ngày trong khoảng đang xem
 const dayInfo = computed(() => {
   const map = new Map();
   for (const d of days.value) {
@@ -194,7 +198,9 @@ const dayInfo = computed(() => {
       if (e) logged = true;
       if (h.type === 'quit' && e && e.value === 0) relapses += 1;
     }
-    map.set(d, { ...dayScore(shownHabits.value, getEntry, d, today), relapses, logged });
+    const score = dayScore(shownHabits.value, getEntry, d, today);
+    const extra = taskPoints[d] || 0;
+    map.set(d, { earned: score.earned + extra, max: score.max + extra, relapses, logged: logged || extra > 0 });
   }
   return map;
 });
@@ -335,28 +341,33 @@ const moodLinks = computed(() => {
             <div :style="{ minWidth: barsMinWidth }">
               <div
                 class="flex h-44 items-end"
-                :class="dense ? 'gap-px' : 'gap-2 sm:gap-3'"
+                :class="dense ? 'gap-0.5' : 'gap-2 sm:gap-3'"
                 role="img"
                 :aria-label="t('stats.trendAria', { list: trend.filter((b) => !b.future).map(bucketValue).join(', ') })"
               >
                 <div v-for="b in trend" :key="b.key" class="flex h-full min-w-0 flex-1 flex-col justify-end gap-2" :title="bucketTitle(b)">
                   <p v-if="!dense" class="text-center text-xs font-medium text-muted tabular-nums">{{ b.max ? b.earned : '\u00a0' }}</p>
                   <div
-                    class="relative mx-auto w-full overflow-hidden bg-foreground/5"
-                    :class="dense ? 'max-w-none rounded-t-[2px]' : 'max-w-8 rounded-t-md'"
+                    class="relative mx-auto w-full overflow-hidden rounded-full bg-foreground/5"
+                    :class="dense ? 'max-w-none' : 'max-w-8'"
                     :style="{ height: `calc((100% - ${dense ? '0rem' : '1.5rem'}) * ${(b.max || trendScale) / trendScale})` }"
                   >
                     <div
                       v-if="b.earned"
-                      class="absolute inset-x-0 bottom-0"
+                      class="absolute inset-x-0 bottom-0 rounded-full"
                       :class="b.partial ? 'bg-chart-fill/50' : 'bg-chart-fill'"
                       :style="{ height: (b.earned / b.max) * 100 + '%' }"
                     />
                   </div>
                 </div>
               </div>
-              <div class="mt-3 flex border-t border-border pt-3" :class="dense ? 'gap-px' : 'gap-2 sm:gap-3'">
-                <p v-for="(b, i) in trend" :key="b.key" class="min-w-0 flex-1 text-center text-xs whitespace-nowrap text-muted">
+              <div class="mt-3 flex border-t border-border pt-3" :class="dense ? 'gap-0.5' : 'gap-2 sm:gap-3'">
+                <p
+                  v-for="(b, i) in trend"
+                  :key="b.key"
+                  class="flex min-w-0 flex-1 text-xs whitespace-nowrap text-muted"
+                  :class="i === 0 ? 'justify-start' : i === trend.length - 1 ? 'justify-end' : 'justify-center'"
+                >
                   <span v-if="i % labelStep === 0" class="inline-block">{{ bucketLabel(b) }}</span>
                 </p>
               </div>
